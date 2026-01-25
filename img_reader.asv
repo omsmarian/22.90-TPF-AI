@@ -13,8 +13,11 @@ G = img(:,:,2);
 B = img(:,:,3);
 
 %% 3. Realce de rojo mejorado
-
+% Opción A: Tu método (resta)
 red_enhanced = R - max(G, B);
+
+% Opción B: Ratio (más robusto a cambios de iluminación)
+% red_enhanced = R ./ (G + B + 0.01);  % evitar división por cero
 
 figure(2);
 idisp(red_enhanced, 'signed');
@@ -29,6 +32,8 @@ title('Histograma de realce');
 vals = red_enhanced(:);
 vals = vals(vals > 0);
 th = prctile(vals, 98);
+
+%th = 0.05;
 
 fprintf('Umbral calculado: %.4f\n', th);
 
@@ -58,8 +63,7 @@ title('Método 1: Enmascarado (píxeles negros)');
 
 %% 8. DETECTAR LO VERDE
 
-% Aumento los verdes
-img_masked = igamm(img_masked, 0.75);
+
 
 % Extraer canales
 R_f = img_masked(:,:,1);
