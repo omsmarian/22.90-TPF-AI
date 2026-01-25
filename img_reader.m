@@ -1,6 +1,5 @@
 %% Limpiar todo
 clear; close all; clc;
-
 %% 1. Leer imagen (Peter Corke)
 img = iread("img/test1.png", 'double');
 figure(1);
@@ -13,71 +12,31 @@ G = img(:,:,2);
 B = img(:,:,3);
 
 %% 3. Realce de rojo mejorado
-
 red_enhanced = R - max(G, B);
+%figure(2);
+%idisp(red_enhanced, 'signed');
+%title('Realce de rojo');
 
-figure(2);
-idisp(red_enhanced, 'signed');
-title('Realce de rojo');
-
-%% 4. Histograma
-figure(3);
-ihist(red_enhanced);
-title('Histograma de realce');
-
-%% 5. Umbral adaptativo
+%% 4. Umbral adaptativo para rojo
 vals = red_enhanced(:);
 vals = vals(vals > 0);
 th = prctile(vals, 98);
-
 fprintf('Umbral calculado: %.4f\n', th);
 
-%% 6. Máscara de rojo
+%% 5. Máscara de rojo
 red_mask = red_enhanced > th;
+se = kcircle(9);
+red_mask = iclose(red_mask, se);
+red_mask = iopen(red_mask, se);
+%figure(4);
+%idisp(red_mask);
+%title('Máscara de línea roja (limpia)');
 
-% Opcional: Limpieza morfológica (Peter Corke)
-se = kcircle(9);  % Elemento estructurante circular de radio 10
-
-red_mask = iclose(red_mask, se);  % cerrar huecos pequeños
-red_mask = iopen(red_mask, se);   % eliminar ruido
-
-figure(4);
-idisp(red_mask);
-title('Máscara de línea roja (limpia)');
-
-%% 7. TRES MÉTODOS DE ELIMINACIÓN
-
+%% 6. Eliminar línea roja
 img_masked = img;
 img_masked(:,:,1) = img_masked(:,:,1) .* ~red_mask;
 img_masked(:,:,2) = img_masked(:,:,2) .* ~red_mask;
 img_masked(:,:,3) = img_masked(:,:,3) .* ~red_mask;
-
 figure(5);
 idisp(img_masked);
-title('Método 1: Enmascarado (píxeles negros)');
-
-%% 8. DETECTAR LO VERDE
-
-% Aumento los verdes
-img_masked = igamm(img_masked, 0.75);
-
-% Extraer canales
-R_f = img_masked(:,:,1);
-G_f = img_masked(:,:,2);
-B_f = img_masked(:,:,3);
-
-%% 10. Realce de verde (G - max(R,B))
-green_enhanced = G_f - max(R_f, B_f);
-
-figure(7);
-idisp(green_enhanced, 'signed');
-title('Realce de verde');
-
-%% 11. Histograma del verde
-figure(8);
-ihist(green_enhanced);
-title('Histograma de verde');
-
-%% 12. Encontrar pico del histograma verde
-vals_green = green_enhanced(:);
-vals_green = vals_green(vals_green > 0);  % Solo valores positivos
+title('Imagen sin línea roja');
