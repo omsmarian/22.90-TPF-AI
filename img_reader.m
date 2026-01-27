@@ -1,10 +1,65 @@
 %% Limpiar todo
 clear; close all; clc;
 %% 1. Leer imagen (Peter Corke)
-img = iread("img/test1.png", 'double');
+img = iread("img/test1.png");
 figure(1);
 idisp(img);
 title('Imagen original');
+
+%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
+
+img = igamm(img, 0.75);
+
+I = img;
+
+I(:,:,2) = niblack(I(:,:,2), -0.05, 5);
+
+figure(10);
+idisp(I);
+
+HSV = rgb2hsv(I);
+
+H = HSV(:,:,1);
+S = HSV(:,:,2);
+V = HSV(:,:,3);
+
+
+%% 8. Realce de verde (clásico Corke)
+green_enhanced = (H > 0.166 & H < 0.65) ... 
+                & (S > 0.1 & S < 0.5);
+
+kgaus = kgauss(5);
+
+green_enhanced = iconv(green_enhanced,kgaus);
+T = otsu(green_enhanced);
+green_enhanced = green_enhanced > T;
+green_enhanced = iclose(green_enhanced, strel('disk',2));
+green_enhanced = iopen(green_enhanced, strel('disk',4));
+
+figure(5)
+idisp(green_enhanced)
+title('Mascar Verde')
+
+%% 10. Hacemos por blobs
+
+rectangulo = iblobs(green_enhanced, 'class', 1)
+
+%% 9. Detección de bordes (Corke)
+edges = icanny(green_enhanced, 1);
+
+
+figure(7);
+idisp(edges);
+title('Bordes verdes');
+
+
+%% 6. Transformada de Hough (Corke)
+Hh = Hough(edges);
+
+
+Hh.show();
+
+error('miau');
 
 %% 2. Extraer canales RGB
 R = img(:,:,1);
@@ -35,44 +90,3 @@ figure(2);
 idisp(img_masked);
 title('Imagen sin línea roja');
 
-%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
-
-I = img_masked;
-
-HSV = rgb2hsv(I);
-
-H = I(:,:,1);
-S = I(:,:,2);
-V = I(:,:,3);
-
-
-%% 8. Realce de verde (clásico Corke)
-green_enhanced = (H > 0.2 & H < 0.5) ... 
-                & (S > 0.1 & S < 0.5);
-
-
-figure(5)
-idisp(green_enhanced)
-title('Mascar Verde')
-
-se = ones(3);
-green_enhanced = iclose(green_enhanced, se);
-green_enhanced = iopen(green_enhanced, se);
-
-figure(6);
-idisp(green_enhanced);
-
-%% 9. Detección de bordes (Corke)
-edges = icanny(green_enhanced, 1);
-
-
-figure(7);
-idisp(edges);
-title('Bordes verdes');
-
-
-%% 6. Transformada de Hough (Corke)
-Hh = Hough(edges);
-
-
-Hh.plot();
