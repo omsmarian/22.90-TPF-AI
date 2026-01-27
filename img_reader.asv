@@ -1,6 +1,5 @@
 %% Limpiar todo
 clear; close all; clc;
-
 %% 1. Leer imagen (Peter Corke)
 img = iread("img/test1.png", 'double');
 figure(1);
@@ -13,75 +12,69 @@ G = img(:,:,2);
 B = img(:,:,3);
 
 %% 3. Realce de rojo mejorado
-% Opción A: Tu método (resta)
 red_enhanced = R - max(G, B);
 
-% Opción B: Ratio (más robusto a cambios de iluminación)
-% red_enhanced = R ./ (G + B + 0.01);  % evitar división por cero
-
-figure(2);
-idisp(red_enhanced, 'signed');
-title('Realce de rojo');
-
-%% 4. Histograma
-figure(3);
-ihist(red_enhanced);
-title('Histograma de realce');
-
-%% 5. Umbral adaptativo
+%% 4. Umbral adaptativo para rojo
 vals = red_enhanced(:);
 vals = vals(vals > 0);
 th = prctile(vals, 98);
-
-%th = 0.05;
-
 fprintf('Umbral calculado: %.4f\n', th);
 
-%% 6. Máscara de rojo
+%% 5. Máscara de rojo
 red_mask = red_enhanced > th;
+se = kcircle(9);
+red_mask = iclose(red_mask, se);
+red_mask = iopen(red_mask, se);
 
-% Opcional: Limpieza morfológica (Peter Corke)
-se = kcircle(9);  % Elemento estructurante circular de radio 10
-
-red_mask = iclose(red_mask, se);  % cerrar huecos pequeños
-red_mask = iopen(red_mask, se);   % eliminar ruido
-
-figure(4);
-idisp(red_mask);
-title('Máscara de línea roja (limpia)');
-
-%% 7. TRES MÉTODOS DE ELIMINACIÓN
-
+%% 6. Eliminar línea roja
 img_masked = img;
 img_masked(:,:,1) = img_masked(:,:,1) .* ~red_mask;
 img_masked(:,:,2) = img_masked(:,:,2) .* ~red_mask;
 img_masked(:,:,3) = img_masked(:,:,3) .* ~red_mask;
-
-figure(5);
+figure(2);
 idisp(img_masked);
-title('Método 1: Enmascarado (píxeles negros)');
+title('Imagen sin línea roja');
 
-%% 8. DETECTAR LO VERDE
+%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
+
+I = img_masked;
+
+HSV = rgb2hsv(I);
+
+H = I(:,:,1);
+S = I(:,:,2);
+V = I(:,:,3);
 
 
+%% 8. Realce de verde (clásico Corke)
+green_enhanced = (H > 0.2 & H < 0.5) ... 
+                & (S > 0.1 & S < 0.5);
 
-% Extraer canales
-R_f = img_masked(:,:,1);
-G_f = img_masked(:,:,2);
-B_f = img_masked(:,:,3);
 
-%% 10. Realce de verde (G - max(R,B))
-green_enhanced = G_f - max(R_f, B_f);
+figure(5)
+idisp(green_enhanced)
+title('Mascar Verde')
+
+se = kcircle(1);
+green_enhanced = iclose(green_enhanced, se);
+green_enhanced = iopen(green_enhanced, se);
+
+figure(6);
+idisp(green_enhanced);
+
+%% 9. Detección de bordes (Corke)
+edges = icanny(green_enhanced, 1);
+
 
 figure(7);
-idisp(green_enhanced, 'signed');
-title('Realce de verde');
+idisp(edges);
+title('Bordes verdes');
 
-%% 11. Histograma del verde
-figure(8);
-ihist(green_enhanced);
-title('Histograma de verde');
 
-%% 12. Encontrar pico del histograma verde
-vals_green = green_enhanced(:);
-vals_green = vals_green(vals_green > 0);  % Solo valores positivos
+%% 6. Transformada de Hough (Corke)
+Hh = hough(edges);
+
+
+figure(5);
+Hh.plot();
+title('Espacio de Hough');

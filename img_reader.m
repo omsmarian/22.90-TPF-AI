@@ -13,9 +13,6 @@ B = img(:,:,3);
 
 %% 3. Realce de rojo mejorado
 red_enhanced = R - max(G, B);
-%figure(2);
-%idisp(red_enhanced, 'signed');
-%title('Realce de rojo');
 
 %% 4. Umbral adaptativo para rojo
 vals = red_enhanced(:);
@@ -28,15 +25,54 @@ red_mask = red_enhanced > th;
 se = kcircle(9);
 red_mask = iclose(red_mask, se);
 red_mask = iopen(red_mask, se);
-%figure(4);
-%idisp(red_mask);
-%title('Máscara de línea roja (limpia)');
 
 %% 6. Eliminar línea roja
 img_masked = img;
 img_masked(:,:,1) = img_masked(:,:,1) .* ~red_mask;
 img_masked(:,:,2) = img_masked(:,:,2) .* ~red_mask;
 img_masked(:,:,3) = img_masked(:,:,3) .* ~red_mask;
-figure(5);
+figure(2);
 idisp(img_masked);
 title('Imagen sin línea roja');
+
+%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
+
+I = img_masked;
+
+HSV = rgb2hsv(I);
+
+H = I(:,:,1);
+S = I(:,:,2);
+V = I(:,:,3);
+
+
+%% 8. Realce de verde (clásico Corke)
+green_enhanced = (H > 0.2 & H < 0.5) ... 
+                & (S > 0.1 & S < 0.5);
+
+
+figure(5)
+idisp(green_enhanced)
+title('Mascar Verde')
+
+se = ones(3);
+green_enhanced = iclose(green_enhanced, se);
+green_enhanced = iopen(green_enhanced, se);
+
+figure(6);
+idisp(green_enhanced);
+
+%% 9. Detección de bordes (Corke)
+edges = icanny(green_enhanced, 1);
+
+
+figure(7);
+idisp(edges);
+title('Bordes verdes');
+
+
+%% 6. Transformada de Hough (Corke)
+Hh = Hough(edges);
+
+
+Hh.plot();
