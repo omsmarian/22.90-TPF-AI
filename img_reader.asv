@@ -40,9 +40,65 @@ figure(5)
 idisp(green_enhanced)
 title('Mascar Verde')
 
-%% 10. Hacemos por blobs
+%% Detectar blobs con borde
+rectangulo = iblobs(green_enhanced, 'class', 1, 'boundary');
 
-rectangulo = iblobs(green_enhanced, 'class', 1)
+figure;
+imshow(green_enhanced);
+axis image;
+axis ij;
+hold on;
+title('Esquinas geométricas reales (intersección de rectas)');
+
+corners = [];
+
+for i = 1:length(rectangulo)
+
+    b = rectangulo(i);
+
+    % ===============================
+    % PIXELES DEL BLOB (Corke-compatible)
+    % ===============================
+
+    % Bounding box del blob
+    umin = b.umin; umax = b.umax;
+    vmin = b.vmin; vmax = b.vmax;
+
+    % Recortar máscara del blob
+    submask = green_enhanced(vmin:vmax, umin:umax);
+
+    % Coordenadas de píxeles del blob
+    [yy, xx] = find(submask);
+    pts = [xx + umin - 1, yy + vmin - 1];
+
+    % Centroide real (no uses b.uc/b.vc, calculalo)
+    c = mean(pts, 1);
+
+    % Distancia al centroide
+    d = hypot(pts(:,1) - c(1), pts(:,2) - c(2));
+
+    % Seleccionar píxeles más extremos (vértice)
+    tol = 0.97 * max(d);
+    candidates = pts(d >= tol, :);
+
+    % Vértice final
+    corner = mean(candidates, 1);
+
+    corners = [corners; corner];
+
+    % Dibujar esquina REAL
+    plot(corner(1), corner(2), 'ro', ...
+        'MarkerSize', 14, ...
+        'MarkerFaceColor', 'r');
+
+    text(corner(1)+10, corner(2)+10, ...
+        sprintf('%d', i), ...
+        'Color','yellow', ...
+        'FontSize',12, ...
+        'FontWeight','bold');
+end
+
+hold off;
 
 %% 9. Detección de bordes (Corke)
 edges = icanny(green_enhanced, 1);
@@ -54,11 +110,10 @@ title('Bordes verdes');
 
 
 %% 6. Transformada de Hough (Corke)
-Hh = Hough(edges,);
+Hh = Hough(edges);
 
 
 Hh.plot();
-Hh.display();
 
 error('miau');
 
@@ -91,3 +146,17 @@ figure(2);
 idisp(img_masked);
 title('Imagen sin línea roja');
 
+function [dir, p0] = fitLinePCA(P)
+    p0 = mean(P,1);
+    C = cov(P);
+    [V, D] = eig(C);
+    [~, i] = max(diag(D));
+    dir = V(:,i)';
+end
+
+function p = intersectLines(p1, d1, p2, d2)
+    A = [d1(:) -d2(:)];
+    b = (p2 - p1)';
+    t = A\b;
+    p = p1 + t(1)*d1;
+end
