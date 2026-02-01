@@ -1,7 +1,7 @@
 %% Limpiar todo
 clear; close all; clc;
 %% 1. Leer imagen (Peter Corke)
-img = iread("img/test1.png");
+img = iread("img/new8.jpeg");
 figure(1);
 idisp(img);
 title('Imagen original');
@@ -22,23 +22,43 @@ V = HSV(:,:,3);
 
 
 %% 3. Realce de verde
-green_enhanced = (H > 0.166 & H < 0.65) ... 
-                & (S > 0.1 & S < 0.5);
+green_enhanced = (H > 0.25 & H < 0.65) ... % se ajusta por abajo el H para verde
+                & (S > 0.15 & S < 0.75);    % se ajusta por abajo el H para eliminar grises
 
 kgaus = kgauss(5);
 
 green_enhanced = iconv(green_enhanced,kgaus);
 T = otsu(green_enhanced);
 green_enhanced = green_enhanced > T;
-green_enhanced = iclose(green_enhanced, strel('disk',2));
-green_enhanced = iopen(green_enhanced, strel('disk',4));
+green_enhanced = iclose(green_enhanced, kcircle(2));
+green_enhanced = iopen(green_enhanced, kcircle(4));
 
 figure(2)
 idisp(green_enhanced)
 title('Mascar Verde')
 
 %% 4. Detección de Blobs y Esquinas Extremas
-rectangulo = iblobs(green_enhanced, 'class', 1, 'boundary');
+% Detectamos todos los candidatos iniciales
+candidatos = iblobs(green_enhanced, 'class', 1, 'boundary');
+
+% --- FILTRADO DE BLOBS POR ASPECT RATIO Y FORMA ---
+rectangulo = []; % Limpiamos para guardar solo los válidos
+for i = 1:length(candidatos)
+    b = candidatos(i);
+    
+    % Calculamos el Aspect Ratio (eje menor / eje mayor)
+    aspect_ratio = b.b / b.a;
+    
+    % Aplicamos los criterios: Area, Circularidad y tu Aspect Ratio (0.4 - 0.6)
+    if b.area > 300 && b.circularity < 0.65 && (aspect_ratio >= 0.35 && aspect_ratio <= 0.65)
+        rectangulo = [rectangulo; b];
+    end
+end
+
+% Verificación de seguridad
+if isempty(rectangulo)
+    error('No se detectó ninguna esquina con los filtros actuales.');
+end
 
 figure(3);
 idisp(green_enhanced);
@@ -46,7 +66,7 @@ title('Detección de Esquinas Extremas (Puntos Violetas)');
 hold on;
 
 % 1. Calcular el CENTRO GLOBAL aproximado del área de trabajo
-% Promediamos los centros de todos los blobs encontrados
+% (Ahora usando solo los blobs que pasaron el filtro)
 center_u = mean([rectangulo.uc]);
 center_v = mean([rectangulo.vc]);
 
@@ -55,6 +75,7 @@ plot(center_u, center_v, 'bx', 'MarkerSize', 20, 'LineWidth', 2);
 
 corners = [];
 
+% Iteramos solo sobre los blobs filtrados
 for i = 1:length(rectangulo)
     b = rectangulo(i);
     
@@ -63,11 +84,9 @@ for i = 1:length(rectangulo)
     
     % ============================================================
     % SOLUCIÓN: DISTANCIA AL CENTRO GLOBAL
-    % El vértice exterior es el punto más lejano al centro de la mesa
     % ============================================================
     
-    % Calculamos la distancia al cuadrado de cada punto del borde al centro global
-    % (Usamos cuadrado para ahorrar la raíz cuadrada, el resultado es el mismo)
+    % Calculamos la distancia al cuadrado al centro global
     dist_sq = (edge(:,1) - center_u).^2 + (edge(:,2) - center_v).^2;
     
     % Encontramos el índice del punto con la distancia MÁXIMA
@@ -99,73 +118,54 @@ hold off;
 disp('Coordenadas de los extremos detectados (u, v):');
 disp(corners);
 
-%% 5. WARP
+%% 5. WARP DE ALTA RESOLUCIÓN (Sin pérdida de calidad)
 
-% --- Paso A: Ordenar las esquinas ---
-% Necesitamos el orden: [Arriba-Izq, Arriba-Der, Abajo-Der, Abajo-Izq]
-% corners tiene formato [x, y] o [u, v]
-
-if size(corners, 1) ~= 4
-    error('Se necesitan exactamente 4 esquinas para el warp. Revisa la detección.');
-end
-
-% Ordenamos primero por la coordenada Y (v) para separar los de "arriba" y "abajo"
+% 1. Ordenar esquinas originales (posi)
 corners_sorted = sortrows(corners, 2); 
+top = sortrows(corners_sorted(1:2, :), 1);
+bot = sortrows(corners_sorted(3:4, :), 1);
+posi = [top(1,:)', top(2,:)', bot(2,:)', bot(1,:)'];
 
-% Tomamos los 2 de arriba (menor Y) y los ordenamos por X para saber cual es Izq y Der
-top_pts = sortrows(corners_sorted(1:2, :), 1);
-tl = top_pts(1, :); % Top-Left
-tr = top_pts(2, :); % Top-Right
+% 2. CALCULAR TAMAÑO DE SALIDA ÓPTIMO (en píxeles)
+% Medimos cuántos píxeles mide el borde superior en la imagen original
+ancho_px = norm(top(1,:) - top(2,:)); 
+% Mantenemos la relación de aspecto 200:150 (4:3) para que no se deforme
+alto_px = ancho_px * (150/200);
 
-% Tomamos los 2 de abajo (mayor Y) y ordenamos por X
-bot_pts = sortrows(corners_sorted(3:4, :), 1);
-bl = bot_pts(1, :); % Bottom-Left
-br = bot_pts(2, :); % Bottom-Right
+% 3. Definir destino (posf) con la resolución real de la cámara
+posf = [1, ancho_px, ancho_px, 1; 
+        1, 1,        alto_px,  alto_px];
 
-% Juntamos todo ordenado
-movingPoints = [tl; tr; br; bl];
+% 4. Homografía y Warp
+matH = homography(posi, posf);
+warped_raw = homwarp(matH, img, 'full');
 
-% --- Paso B: Definir el tamaño de la imagen de salida ---
-% Podemos calcular el ancho/alto promedio basado en las distancias reales
-% o fijar un tamaño arbitrario (ej. 600x400).
+% --- RECORTE DE PRECISIÓN ---
+% Proyectamos las esquinas de la imagen original para saber el desplazamiento (offset)
+[h_orig, w_orig, ~] = size(img);
+esquinas_img_orig = [1, w_orig, w_orig, 1; 
+                     1, 1, h_orig, h_orig];
+esquinas_dest = homtrans(matH, esquinas_img_orig);
 
-% Calculamos ancho superior e inferior y promediamos (Euclídea)
-w1 = norm(tl - tr);
-w2 = norm(bl - br);
-W_real = round(mean([w1 w2]));
+% El punto (1,1) de nuestra área de interés está en estas coordenadas 
+% dentro de la matriz warped_raw:
+offset_u = min(esquinas_dest(1,:));
+offset_v = min(esquinas_dest(2,:));
 
-% Calculamos alto izquierdo y derecho
-h1 = norm(tl - bl);
-h2 = norm(tr - br);
-H_real = round(mean([h1 h2]));
+start_u = round(1 - offset_u) + 1;
+start_v = round(1 - offset_v) + 1;
 
-% Puntos destino en la nueva imagen [x, y]
-% El orden debe coincidir: TL, TR, BR, BL
-fixedPoints = [
-    0,       0;          % TL
-    W_real,  0;          % TR
-    W_real,  H_real;     % BR
-    0,       H_real      % BL
-];
+% Recortamos usando el ancho y alto que calculamos para máxima calidad
+img_warped = warped_raw(start_v : start_v + round(alto_px) - 1, ...
+                        start_u : start_u + round(ancho_px) - 1, :);
 
-% --- Paso C: Calcular la transformación y hacer el Warp ---
+% 5. Guardar factor de escala para el robot
+% Este valor te dirá cuántos mm vale cada píxel ahora (ej: 0.25 mm/px)
+mm_per_pixel = 200 / ancho_px;
 
-% Calculamos la homografía (Matriz de transformación proyectiva)
-tform = fitgeotrans(movingPoints, fixedPoints, 'projective');
-
-% Aplicamos la transformación a la imagen ORIGINAL (img)
-% 'OutputView' asegura que la imagen resultante tenga el tamaño exacto que definimos
-ref = imref2d([H_real W_real]);
-img_warped = imwarp(img, tform, 'OutputView', ref);
-
-% --- Visualización Final ---
-figure(4);
+figure(20);
 idisp(img_warped);
-title('Área de Trabajo Rectificada (Warp)');
-
-% Opcional: Mostrar los ejes para verificar coordenadas
-axis on;
-
+title(sprintf('Warp Alta Resolución (%.1f x %.1f px)', ancho_px, alto_px));
 
 %% 6. DETECCIÓN DE LÍNEA ROJA (Extremos)
 
@@ -182,11 +182,11 @@ V = hsv(:,:,3);
 
 % 2. Máscara de Rojo
 % El rojo está en dos partes del Hue: cerca de 0 y cerca de 1
-mask_red = (H < 0.1 | H > 0.9) & (S > 0.25) & (V > 0.2);
+mask_red = (H < 0.25 | H > 0.85) & (S > 0.05) & (V > 0.2);
 
 % Limpiar ruido (cerrar huecos y quitar puntitos sueltos)
-mask_red = iclose(mask_red, strel('disk', 3));
-mask_red = iopen(mask_red, strel('disk', 2));
+mask_red = iclose(mask_red, kcircle(3));
+mask_red = iopen(mask_red, kcircle(2));
 
 figure(5);
 idisp(mask_red);
