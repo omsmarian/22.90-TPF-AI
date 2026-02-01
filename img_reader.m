@@ -1,7 +1,7 @@
 %% Limpiar todo
 clear; close all; clc;
 %% 1. Leer imagen (Peter Corke)
-img = iread("img/new8.jpeg");
+img = iread("img/new2.jpeg");
 figure(1);
 idisp(img);
 title('Imagen original');
@@ -182,10 +182,10 @@ V = hsv(:,:,3);
 
 % 2. Máscara de Rojo
 % El rojo está en dos partes del Hue: cerca de 0 y cerca de 1
-mask_red = (H < 0.25 | H > 0.85) & (S > 0.05) & (V > 0.2);
+mask_red = (H < 0.1 | H > 0.85) & (S > 0.1) & (V > 0.2);
 
 % Limpiar ruido (cerrar huecos y quitar puntitos sueltos)
-mask_red = iclose(mask_red, kcircle(3));
+mask_red = iclose(mask_red, kcircle(4));
 mask_red = iopen(mask_red, kcircle(2));
 
 figure(5);
