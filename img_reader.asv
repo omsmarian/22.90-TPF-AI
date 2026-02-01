@@ -6,7 +6,7 @@ figure(1);
 idisp(img);
 title('Imagen original');
 
-%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
+%% 2. DETECCIÓN DE VERDE (sobre imagen sin rojo)
 
 img = igamm(img, 0.75);
 
@@ -24,7 +24,7 @@ S = HSV(:,:,2);
 V = HSV(:,:,3);
 
 
-%% 8. Realce de verde (clásico Corke)
+%% 3. Realce de verde
 green_enhanced = (H > 0.166 & H < 0.65) ... 
                 & (S > 0.1 & S < 0.5);
 
@@ -40,87 +40,142 @@ figure(5)
 idisp(green_enhanced)
 title('Mascar Verde')
 
-%% Detectar blobs con borde
+%% 4. Detección de Blobs y Esquinas Extremas
 rectangulo = iblobs(green_enhanced, 'class', 1, 'boundary');
 
-figure;
-imshow(green_enhanced);
-axis image;
-axis ij;
+figure(6);
+idisp(green_enhanced);
+title('Detección de Esquinas Extremas (Puntos Violetas)');
 hold on;
-title('Esquinas geométricas reales (intersección de rectas)');
+
+% 1. Calcular el CENTRO GLOBAL aproximado del área de trabajo
+% Promediamos los centros de todos los blobs encontrados
+center_u = mean([rectangulo.uc]);
+center_v = mean([rectangulo.vc]);
+
+% Dibujamos el centro global como referencia (cruz azul)
+plot(center_u, center_v, 'bx', 'MarkerSize', 20, 'LineWidth', 2);
 
 corners = [];
 
 for i = 1:length(rectangulo)
-
     b = rectangulo(i);
+    
+    % Obtener los puntos del borde [x, y]
+    edge = b.edge'; 
+    
+    % ============================================================
+    % SOLUCIÓN: DISTANCIA AL CENTRO GLOBAL
+    % El vértice exterior es el punto más lejano al centro de la mesa
+    % ============================================================
+    
+    % Calculamos la distancia al cuadrado de cada punto del borde al centro global
+    % (Usamos cuadrado para ahorrar la raíz cuadrada, el resultado es el mismo)
+    dist_sq = (edge(:,1) - center_u).^2 + (edge(:,2) - center_v).^2;
+    
+    % Encontramos el índice del punto con la distancia MÁXIMA
+    [~, idx_max] = max(dist_sq);
+    
+    % Este es tu "Punto Violeta"
+    corner_point = edge(idx_max, :);
+    corners = [corners; corner_point];
 
-    % ===============================
-    % PIXELES DEL BLOB (Corke-compatible)
-    % ===============================
-
-    % Bounding box del blob
-    umin = b.umin; umax = b.umax;
-    vmin = b.vmin; vmax = b.vmax;
-
-    % Recortar máscara del blob
-    submask = green_enhanced(vmin:vmax, umin:umax);
-
-    % Coordenadas de píxeles del blob
-    [yy, xx] = find(submask);
-    pts = [xx + umin - 1, yy + vmin - 1];
-
-    % Centroide real (no uses b.uc/b.vc, calculalo)
-    c = mean(pts, 1);
-
-    % Distancia al centroide
-    d = hypot(pts(:,1) - c(1), pts(:,2) - c(2));
-
-    % Seleccionar píxeles más extremos (vértice)
-    tol = 0.97 * max(d);
-    candidates = pts(d >= tol, :);
-
-    % Vértice final
-    corner = mean(candidates, 1);
-
-    corners = [corners; corner];
-
-    % Dibujar esquina REAL
-    plot(corner(1), corner(2), 'ro', ...
-        'MarkerSize', 14, ...
-        'MarkerFaceColor', 'r');
-
-    text(corner(1)+10, corner(2)+10, ...
-        sprintf('%d', i), ...
-        'Color','yellow', ...
-        'FontSize',12, ...
-        'FontWeight','bold');
+    % --- Visualización ---
+    
+    % Dibujar el borde completo en amarillo suave
+    plot(edge(:,1), edge(:,2), 'y.', 'MarkerSize', 2);
+    
+    % Dibujar la ESQUINA EXTREMA (Punto Violeta)
+    plot(corner_point(1), corner_point(2), 'o', ...
+        'MarkerSize', 12, ...
+        'MarkerFaceColor', [0.5 0 0.5], ... % Color violeta
+        'Color', 'white'); 
+    
+    % Etiqueta
+    text(corner_point(1)+15, corner_point(2)+15, ...
+        sprintf('C%d', i), 'Color','cyan', 'FontWeight','bold');
 end
 
 hold off;
 
-%% 9. Detección de bordes (Corke)
-edges = icanny(green_enhanced, 1);
+% Mostrar coordenadas finales en consola
+disp('Coordenadas de los extremos detectados (u, v):');
+disp(corners);
 
+%% 5. WARP
 
-figure(7);
-idisp(edges);
-title('Bordes verdes');
+% --- Paso A: Ordenar las esquinas ---
+% Necesitamos el orden: [Arriba-Izq, Arriba-Der, Abajo-Der, Abajo-Izq]
+% corners tiene formato [x, y] o [u, v]
 
+if size(corners, 1) ~= 4
+    error('Se necesitan exactamente 4 esquinas para el warp. Revisa la detección.');
+end
 
-%% 6. Transformada de Hough (Corke)
-Hh = Hough(edges);
+% Ordenamos primero por la coordenada Y (v) para separar los de "arriba" y "abajo"
+corners_sorted = sortrows(corners, 2); 
 
+% Tomamos los 2 de arriba (menor Y) y los ordenamos por X para saber cual es Izq y Der
+top_pts = sortrows(corners_sorted(1:2, :), 1);
+tl = top_pts(1, :); % Top-Left
+tr = top_pts(2, :); % Top-Right
 
-Hh.plot();
+% Tomamos los 2 de abajo (mayor Y) y ordenamos por X
+bot_pts = sortrows(corners_sorted(3:4, :), 1);
+bl = bot_pts(1, :); % Bottom-Left
+br = bot_pts(2, :); % Bottom-Right
 
-error('miau');
+% Juntamos todo ordenado
+movingPoints = [tl; tr; br; bl];
+
+% --- Paso B: Definir el tamaño de la imagen de salida ---
+% Podemos calcular el ancho/alto promedio basado en las distancias reales
+% o fijar un tamaño arbitrario (ej. 600x400).
+
+% Calculamos ancho superior e inferior y promediamos (Euclídea)
+w1 = norm(tl - tr);
+w2 = norm(bl - br);
+W_real = round(mean([w1 w2]));
+
+% Calculamos alto izquierdo y derecho
+h1 = norm(tl - bl);
+h2 = norm(tr - br);
+H_real = round(mean([h1 h2]));
+
+% Puntos destino en la nueva imagen [x, y]
+% El orden debe coincidir: TL, TR, BR, BL
+fixedPoints = [
+    0,       0;          % TL
+    W_real,  0;          % TR
+    W_real,  H_real;     % BR
+    0,       H_real      % BL
+];
+
+% --- Paso C: Calcular la transformación y hacer el Warp ---
+
+% Calculamos la homografía (Matriz de transformación proyectiva)
+tform = fitgeotrans(movingPoints, fixedPoints, 'projective');
+
+% Aplicamos la transformación a la imagen ORIGINAL (img)
+% 'OutputView' asegura que la imagen resultante tenga el tamaño exacto que definimos
+ref = imref2d([H_real W_real]);
+img_warped = imwarp(img, tform, 'OutputView', ref);
+
+% --- Visualización Final ---
+figure(20);
+idisp(img_warped);
+title('Área de Trabajo Rectificada (Warp)');
+
+% Opcional: Mostrar los ejes para verificar coordenadas
+axis on;
 
 %% 2. Extraer canales RGB
-R = img(:,:,1);
-G = img(:,:,2);
-B = img(:,:,3);
+
+rgb_img = h
+
+R = img_warped(:,:,1);
+G = img_warped(:,:,2);
+B = img_warped(:,:,3);
 
 %% 3. Realce de rojo mejorado
 red_enhanced = R - max(G, B);
@@ -145,18 +200,3 @@ img_masked(:,:,3) = img_masked(:,:,3) .* ~red_mask;
 figure(2);
 idisp(img_masked);
 title('Imagen sin línea roja');
-
-function [dir, p0] = fitLinePCA(P)
-    p0 = mean(P,1);
-    C = cov(P);
-    [V, D] = eig(C);
-    [~, i] = max(diag(D));
-    dir = V(:,i)';
-end
-
-function p = intersectLines(p1, d1, p2, d2)
-    A = [d1(:) -d2(:)];
-    b = (p2 - p1)';
-    t = A\b;
-    p = p1 + t(1)*d1;
-end

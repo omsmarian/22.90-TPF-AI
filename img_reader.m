@@ -6,7 +6,7 @@ figure(1);
 idisp(img);
 title('Imagen original');
 
-%% 7. DETECCIÓN DE VERDE (sobre imagen sin rojo)
+%% 2. DETECCIÓN DE VERDE (sobre imagen sin rojo)
 
 img = igamm(img, 0.75);
 
@@ -24,7 +24,7 @@ S = HSV(:,:,2);
 V = HSV(:,:,3);
 
 
-%% 8. Realce de verde (clásico Corke)
+%% 3. Realce de verde
 green_enhanced = (H > 0.166 & H < 0.65) ... 
                 & (S > 0.1 & S < 0.5);
 
@@ -40,7 +40,7 @@ figure(5)
 idisp(green_enhanced)
 title('Mascar Verde')
 
-%% Detección de Blobs y Esquinas Extremas
+%% 4. Detección de Blobs y Esquinas Extremas
 rectangulo = iblobs(green_enhanced, 'class', 1, 'boundary');
 
 figure(6);
@@ -102,7 +102,7 @@ hold off;
 disp('Coordenadas de los extremos detectados (u, v):');
 disp(corners);
 
-%% 9. WARP (Corrección de Perspectiva)
+%% 5. WARP
 
 % --- Paso A: Ordenar las esquinas ---
 % Necesitamos el orden: [Arriba-Izq, Arriba-Der, Abajo-Der, Abajo-Izq]
@@ -169,48 +169,105 @@ title('Área de Trabajo Rectificada (Warp)');
 % Opcional: Mostrar los ejes para verificar coordenadas
 axis on;
 
-%% 9. Detección de bordes (Corke)
-%edges = icanny(green_enhanced, 1);
+
+%% 6. DETECCIÓN DE LÍNEA ROJA (Extremos)
+
+% Asegurar que la imagen sea uint8 para procesar
+
+img_warped_u8 = img_warped;
 
 
-%figure(7);
-%idisp(edges);
-%title('Bordes verdes');
+% 1. Convertir a HSV para segmentar color
+hsv = rgb2hsv(img_warped_u8);
+H = hsv(:,:,1);
+S = hsv(:,:,2);
+V = hsv(:,:,3);
 
+% 2. Máscara de Rojo
+% El rojo está en dos partes del Hue: cerca de 0 y cerca de 1
+mask_red = (H < 0.1 | H > 0.9) & (S > 0.25) & (V > 0.2);
 
-%% 6. Transformada de Hough (Corke)
-%Hh = Hough(edges);
+idisp(mask_red, 'signed');
 
+% Limpiar ruido (cerrar huecos y quitar puntitos sueltos)
+mask_red = iclose(mask_red, strel('disk', 3));
+mask_red = iopen(mask_red, strel('disk', 2));
 
-%Hh.plot();
+figure(21);
+idisp(mask_red);
+title('Máscara Roja');
 
-error('miau');
+% 4. Análisis de Blobs (Corke)
+% Filtramos por area mínima para ignorar ruido pequeño
+blobs = iblobs(mask_red, 'class', 1)
 
-%% 2. Extraer canales RGB
-R = img(:,:,1);
-G = img(:,:,2);
-B = img(:,:,3);
+if isempty(blobs)
+    error('No se detectó ninguna línea roja. Revisa el umbral HSV.');
+end
 
-%% 3. Realce de rojo mejorado
-red_enhanced = R - max(G, B);
+% Asumimos que la línea es el blob más grande encontrado
+[~, idx_biggest] = max([blobs.area]);
+linea_blob = blobs(idx_biggest);
 
-%% 4. Umbral adaptativo para rojo
-vals = red_enhanced(:);
-vals = vals(vals > 0);
-th = prctile(vals, 98);
-fprintf('Umbral calculado: %.4f\n', th);
+% 5. Encontrar extremos matemáticamente (Sin bwmorph)
+% Obtenemos TODOS los pixeles que pertenecen a la máscara roja
+[v_inds, u_inds] = find(mask_red); 
+% Nota: find devuelve (fila, columna) -> (y, x) -> (v, u)
 
-%% 5. Máscara de rojo
-red_mask = red_enhanced > th;
-se = kcircle(9);
-red_mask = iclose(red_mask, se);
-red_mask = iopen(red_mask, se);
+pixels = [u_inds, v_inds]; % Matriz Nx2 de coordenadas [u, v]
 
-%% 6. Eliminar línea roja
-img_masked = img;
-img_masked(:,:,1) = img_masked(:,:,1) .* ~red_mask;
-img_masked(:,:,2) = img_masked(:,:,2) .* ~red_mask;
-img_masked(:,:,3) = img_masked(:,:,3) .* ~red_mask;
-figure(2);
-idisp(img_masked);
-title('Imagen sin línea roja');
+if isempty(pixels)
+    error('La máscara está vacía.');
+end
+
+% 5. Algoritmo de Distancia Máxima para hallar los extremos
+% A. Punto P1: El más alejado del promedio (centroide) de la línea
+centroide = mean(pixels);
+dist_al_centro = sum((pixels - centroide).^2, 2);
+[~, idx1] = max(dist_al_centro);
+p1 = pixels(idx1, :);
+
+% B. Punto P2: El más alejado de P1 (el otro extremo)
+dist_a_p1 = sum((pixels - p1).^2, 2);
+[~, idx2] = max(dist_a_p1);
+p2 = pixels(idx2, :);
+
+%% 7. VISUALIZACIÓN DE PUNTOS Y COORDENADAS MM
+
+% Dimensiones reales del plano (Página 4)
+ANCHO_REAL_MM = 200; 
+ALTO_REAL_MM = 150;
+
+% Factores de conversión
+W_pix = size(img_warped, 2);
+H_pix = size(img_warped, 1);
+scale_x = ANCHO_REAL_MM / W_pix;
+scale_y = ALTO_REAL_MM / H_pix;
+
+% Puntos en milímetros
+P1_mm = [p1(1) * scale_x, p1(2) * scale_y];
+P2_mm = [p2(1) * scale_x, p2(2) * scale_y];
+
+% --- Mostrar Imagen con Puntos ---
+figure(22);
+idisp(img_warped); 
+title('Extremos de la línea detectados (en mm)');
+hold on;
+
+% Dibujar la línea (verde para que resalte)
+plot([p1(1) p2(1)], [p1(2) p2(2)], 'g-', 'LineWidth', 2);
+
+% Dibujar los dos puntos extremos (Círculos azules)
+plot(p1(1), p1(2), 'bo', 'MarkerSize', 12, 'LineWidth', 3);
+plot(p2(1), p2(2), 'bo', 'MarkerSize', 12, 'LineWidth', 3);
+
+% Etiquetas de texto sobre la imagen
+text(p1(1)+10, p1(2), sprintf('P1: [%.1f, %.1f]', P1_mm), 'Color', 'yellow', 'FontWeight', 'bold');
+text(p2(1)+10, p2(2), sprintf('P2: [%.1f, %.1f]', P2_mm), 'Color', 'yellow', 'FontWeight', 'bold');
+
+hold off;
+
+% Imprimir resultados para el robot
+fprintf('\n--- COORDENADAS PARA TRAYECTORIA ROBOT ---\n');
+fprintf('Punto Inicio (mm): X=%.2f, Y=%.2f\n', P1_mm(1), P1_mm(2));
+fprintf('Punto Fin    (mm): X=%.2f, Y=%.2f\n', P2_mm(1), P2_mm(2));
