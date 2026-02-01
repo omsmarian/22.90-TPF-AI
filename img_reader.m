@@ -14,9 +14,6 @@ I = img;
 
 I(:,:,2) = niblack(I(:,:,2), -0.05, 5);
 
-figure(10);
-idisp(I);
-
 HSV = rgb2hsv(I);
 
 H = HSV(:,:,1);
@@ -36,14 +33,14 @@ green_enhanced = green_enhanced > T;
 green_enhanced = iclose(green_enhanced, strel('disk',2));
 green_enhanced = iopen(green_enhanced, strel('disk',4));
 
-figure(5)
+figure(2)
 idisp(green_enhanced)
 title('Mascar Verde')
 
 %% 4. Detección de Blobs y Esquinas Extremas
 rectangulo = iblobs(green_enhanced, 'class', 1, 'boundary');
 
-figure(6);
+figure(3);
 idisp(green_enhanced);
 title('Detección de Esquinas Extremas (Puntos Violetas)');
 hold on;
@@ -162,7 +159,7 @@ ref = imref2d([H_real W_real]);
 img_warped = imwarp(img, tform, 'OutputView', ref);
 
 % --- Visualización Final ---
-figure(20);
+figure(4);
 idisp(img_warped);
 title('Área de Trabajo Rectificada (Warp)');
 
@@ -187,19 +184,17 @@ V = hsv(:,:,3);
 % El rojo está en dos partes del Hue: cerca de 0 y cerca de 1
 mask_red = (H < 0.1 | H > 0.9) & (S > 0.25) & (V > 0.2);
 
-idisp(mask_red, 'signed');
-
 % Limpiar ruido (cerrar huecos y quitar puntitos sueltos)
 mask_red = iclose(mask_red, strel('disk', 3));
 mask_red = iopen(mask_red, strel('disk', 2));
 
-figure(21);
+figure(5);
 idisp(mask_red);
 title('Máscara Roja');
 
 % 4. Análisis de Blobs (Corke)
 % Filtramos por area mínima para ignorar ruido pequeño
-blobs = iblobs(mask_red, 'class', 1)
+blobs = iblobs(mask_red, 'class', 1);
 
 if isempty(blobs)
     error('No se detectó ninguna línea roja. Revisa el umbral HSV.');
@@ -249,7 +244,7 @@ P1_mm = [p1(1) * scale_x, p1(2) * scale_y];
 P2_mm = [p2(1) * scale_x, p2(2) * scale_y];
 
 % --- Mostrar Imagen con Puntos ---
-figure(22);
+figure(6);
 idisp(img_warped); 
 title('Extremos de la línea detectados (en mm)');
 hold on;
