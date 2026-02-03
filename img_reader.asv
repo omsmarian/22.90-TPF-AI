@@ -21,9 +21,7 @@ S = HSV(:,:,2);
 V = HSV(:,:,3);
 
 % TODO: verificar que todas sean funciones legales
-% TODO: limpiar AI slop
-% TODO: convertir esto en una funcion, si no detecta lineas devuelve 0.
-% input es la imagen a analizar, output son los puntos para el robot
+% T
 %% 3. Realce de verde
 green_enhanced = (H > 0.25 & H < 0.65) ... % se ajusta por abajo el H para verde
                 & (S > 0.15 & S < 0.75);    % se ajusta por abajo el H para eliminar grises
