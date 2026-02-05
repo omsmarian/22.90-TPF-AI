@@ -1,6 +1,9 @@
 %% Limpiar todo
 clear; close all; clc;
 
+% Agregar carpeta de funciones al path
+addpath('functions');
+
 %% Archivo de prueba del modelo de visión
 imgPath = "img/new9.jpeg";
 
