@@ -118,6 +118,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     camva(10); % ángulo de visión de la cámara (valores menores = más zoom), aumentar para alejar
     % También se puede desplazar la cámara más atrás en el eje de visión:
     camdolly(-0.2, 0, 0, 'headline'); % desplaza la cámara hacia atrás (ajustar magnitud)
+    
     % D) ROBOT Y TRAYECTORIA
     hTrail = plot3(NaN, NaN, NaN, 'm-', 'LineWidth', 2); % línea que irá "pintando"
     Ptrail = []; % acumula puntos [x y z]
@@ -129,7 +130,8 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
         % obtener posición del efector final (SE3)
         T = Robot.fkine(q);             % para SerialLink devuelve objeto SE3
         p = T.t;                        % p = [x y z]
-        Ptrail(end+1,:) = p;            %
+        trailIdx = trailIdx + 1;
+        Ptrail(trailIdx, :) = p;
         set(hTrail, 'XData', Ptrail(:,1), 'YData', Ptrail(:,2), 'ZData', Ptrail(:,3));
         drawnow;
     end

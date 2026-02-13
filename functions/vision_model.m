@@ -51,7 +51,7 @@ function [P1_mm, P2_mm, debug] = vision_model(imgInput, opts)
                     & (S > 0.15 & S < 0.75);
 
     kgaus = kgauss(5);
-    green_enhanced = iconv(green_enhanced, kgaus);
+    green_enhanced = iconvolve(green_enhanced, kgaus);
     T = otsu(green_enhanced);
     green_enhanced = green_enhanced > T;
 

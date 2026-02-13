@@ -87,7 +87,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     Error_mm = (P_deseada - P_real) * 1000;
 
     %% 6. Gráficos
-   figure(1); clf; hold on;
+   figure(2); clf; hold on;
 
    % A) DIBUJAR LA HOJA (Rectángulo Negro)
     x_start = 0.06; 
@@ -136,7 +136,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     end
 
     % Figura 2: Errores
-    figure(2); clf;
+    figure(3); clf;
     subplot(2,1,1); hold on;
     plot(P_deseada, '--'); 
     plot(P_real, '-'); 
@@ -147,7 +147,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     ylabel('Error [mm]'); title('Error de Seguimiento'); legend('Ex','Ey','Ez'); grid on;
 
     % Figura 3: Motores
-    figure(3); clf;
+    figure(4); clf;
     plot(q_solucion * (180/pi), 'LineWidth', 1.5);
     ylabel('Grados'); title('Motores'); legend('q1','q2','q3','q4','q5'); grid on;
 
