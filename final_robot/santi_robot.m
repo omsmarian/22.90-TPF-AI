@@ -57,13 +57,16 @@ fprintf('Iniciando Misión Completa (%d pasos)...\n', pasos);
 for i = 1:pasos
     P_objetivo = P_deseada(i, :); 
     T_actual = Robot.fkine(q_actual);
-    P_actual = T_actual.t'; 
+    % T_actual es una matriz de transformación homogénea 4x4 (pose del efector).
+    % .t devuelve el vector traslacional [x y z]' (propiedad de SerialLink.fkine).
+    % El transpose (') lo convierte en fila [x y z] para que coincida con P_objetivo.
+    P_actual = T_actual.t';
     error = P_objetivo - P_actual;
     
     J = Robot.jacob0(q_actual);
     J_xyz = J(1:3, :); 
     
-    dq = (pinv(J_xyz) * error')'; % Ley simple
+    dq = (pinv(J_xyz) * error')'; % pinv calcula la pseudo-inversa del jacobiano y se utiliza para la ley de control
     
     q_actual = q_actual + dq;
     q_solucion(i, :) = q_actual;
