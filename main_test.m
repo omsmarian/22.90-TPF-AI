@@ -1,9 +1,10 @@
 %% Script Principal
 clear; clc; close all;
+addpath('functions');
 
 % 1. Datos que vienen de la cámara (ejemplo: una línea diagonal)
-u_inicio = 20;  v_inicio = 50;   % Cerca de la esquina superior izquierda
-u_fin    = 130; v_fin    = 50;  % Cerca de la esquina inferior derecha
+u_inicio = 0;  v_inicio = 150;   % U es eje Y & V es eje X
+u_fin    = 200; v_fin    = 0;  % (0,0) es la esquina superior izquierda de la hoja
 
 % 2. Convertir a coordenadas del Robot
 [x1, y1] = vision_to_robot(u_inicio, v_inicio);

@@ -10,6 +10,16 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     L_m  = L/1000; % Pasar a metros
     d_eq = sqrt(L(2)^2 + L(3)^2)/1000;
 
+
+    % Definición de Límites (Ojo: corregí q5 de [180 -180] a [-180 180])
+    qlim = [ deg2rad([-60 60]);   % q1
+             deg2rad([ -90 0]);   % q2
+             deg2rad([-90 0]);   % q3
+             deg2rad([-90 0]);   % q4
+             deg2rad([-180 180]) ]; % q5
+
+
+
     % Definición de Links (DH Modificado)
     R1 = Link('revolute', 'alpha',     0, 'a',  0,    'd', L_m(1), 'offset',   0,   'modified');
     R2 = Link('revolute', 'alpha',  pi/2, 'a',  0,    'd', 0,     'offset',  pi/2, 'modified');
@@ -60,24 +70,36 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     
     fprintf('Simulando trayectoria: [%.2f, %.2f] -> [%.2f, %.2f]\n', x_ini, y_ini, x_fin, y_fin);
 
+    
     for i = 1:pasos
         P_objetivo = P_deseada(i, :); 
         T_actual = Robot.fkine(q_actual);
-        % T_actual es una matriz de transformación homogénea 4x4 (pose del efector).
-        % .t devuelve el vector traslacional [x y z]' (propiedad de SerialLink.fkine).
-        % El transpose (') lo convierte en fila [x y z] para que coincida con P_objetivo.
         P_actual = T_actual.t';
         error = P_objetivo - P_actual;
         
         J = Robot.jacob0(q_actual);
         J_xyz = J(1:3, :); 
         
-        dq = (pinv(J_xyz) * error')'; % pinv calcula la pseudo-inversa del jacobiano y se utiliza para la ley de control 
+        dq = (pinv(J_xyz) * error')'; 
         
-        q_actual = q_actual + dq;
+        % Aplicamos el movimiento
+        q_siguiente = q_actual + dq;
+        
+        % --- VERIFICACIÓN DE LÍMITES (Saturación) ---
+        for j = 1:5
+            if q_siguiente(j) < qlim(j,1)
+                q_siguiente(j) = qlim(j,1);
+                % fprintf('W: Joint %d alcanzó límite inferior en paso %d\n', j, i);
+            elseif q_siguiente(j) > qlim(j,2)
+                q_siguiente(j) = qlim(j,2);
+                % fprintf('W: Joint %d alcanzó límite superior en paso %d\n', j, i);
+            end
+        end
+        % --------------------------------------------
+        
+        q_actual = q_siguiente;
         q_solucion(i, :) = q_actual;
     end
-
     %% 5. Recalcular Real
     P_real = zeros(pasos, 3);
     for i = 1:pasos
