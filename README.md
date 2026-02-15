@@ -118,27 +118,24 @@ En esos casos devuelve `P1_mm = 0`, `P2_mm = 0` y mensaje en `debug.reason`.
 
 ```mermaid
 flowchart TD
-    V0[Inicio vision_model] --> V1[Leer imagen]
-    V1 --> V2[Gamma + Niblack en canal G]
-    V2 --> V3[RGB->HSV + umbral verde]
-    V3 --> V4[Suavizado + Otsu]
-    V4 --> V5[iblobs + filtros geométricos]
-    V5 --> V6{>= 4 esquinas válidas?}
-
-    V6 -- No --> V7[Retornar error en debug.reason]
-    V6 -- Sí --> V8[Ordenar esquinas y calcular homografía]
-    V8 --> V9[Warp y recorte del plano]
-    V9 --> V10{Warp no vacío?}
-
-    V10 -- No --> V7
-    V10 -- Sí --> V11[Realce rojo R-max(G,B)]
-    V11 --> V12[Umbralizar máscara roja]
-    V12 --> V13{Hay píxeles rojos?}
-
-    V13 -- No --> V7
-    V13 -- Sí --> V14[Centroide + extremos p1/p2]
-    V14 --> V15[Escalar px a mm (200x150)]
-    V15 --> V16[Retornar P1_mm, P2_mm, debug.ok=true]
+  V0[Inicio vision model] --> V1[Leer imagen]
+  V1 --> V2[Preproceso gamma y niblack]
+  V2 --> V3[Convertir a HSV y umbral verde]
+  V3 --> V4[Suavizado y umbral otsu]
+  V4 --> V5[Detectar blobs y filtrar]
+  V5 --> V6{Hay cuatro esquinas validas}
+  V6 -- No --> V7[Retornar error en debug]
+  V6 -- Si --> V8[Ordenar esquinas y homografia]
+  V8 --> V9[Warp y recorte]
+  V9 --> V10{Warp valido}
+  V10 -- No --> V7
+  V10 -- Si --> V11[Realce rojo por oponencia]
+  V11 --> V12[Umbralizar mascara roja]
+  V12 --> V13{Hay pixeles rojos}
+  V13 -- No --> V7
+  V13 -- Si --> V14[Calcular centroide y extremos]
+  V14 --> V15[Escalar a milimetros]
+  V15 --> V16[Retornar P1 y P2 y debug ok]
 ```
 
 ---
@@ -211,24 +208,22 @@ Para cada paso:
 
 ```mermaid
 flowchart TD
-    R0[Inicio Robot_Sim] --> R1[Definir parámetros geométricos y DH]
-    R1 --> R2[Crear SerialLink y pose Qreposo]
-    R2 --> R3[Definir waypoints W1-W4 y home]
-    R3 --> R4[Generar tramos con mtraj]
-    R4 --> R5[Concatenar P_deseada]
-    R5 --> R6[Inicializar q_actual]
-
-    R6 --> R7{Quedan pasos?}
-    R7 -- Sí --> R8[fkine -> P_actual]
-    R8 --> R9[Error e = P_obj - P_actual]
-    R9 --> R10[jacob0 -> J_xyz]
-    R10 --> R11[dq = pinv(J_xyz)*e]
-    R11 --> R12[Actualizar q_actual y guardar]
-    R12 --> R7
-
-    R7 -- No --> R13[Recalcular P_real y error]
-    R13 --> R14[Graficar simulación, errores y motores]
-    R14 --> R15[Fin]
+  R0[Inicio robot sim] --> R1[Definir parametros geometricos y DH]
+  R1 --> R2[Crear serial link y pose reposo]
+  R2 --> R3[Definir waypoints y home]
+  R3 --> R4[Generar tramos con mtraj]
+  R4 --> R5[Concatenar trayectoria deseada]
+  R5 --> R6[Inicializar q actual]
+  R6 --> R7{Quedan pasos}
+  R7 -- Si --> R8[Calcular pose actual con fkine]
+  R8 --> R9[Calcular error cartesiano]
+  R9 --> R10[Calcular jacobiano xyz]
+  R10 --> R11[Calcular delta q con pseudoinversa]
+  R11 --> R12[Actualizar q y guardar]
+  R12 --> R7
+  R7 -- No --> R13[Recalcular trayectoria real y error]
+  R13 --> R14[Graficar simulacion errores y motores]
+  R14 --> R15[Fin]
 ```
 
 ---
