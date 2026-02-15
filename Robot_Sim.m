@@ -140,11 +140,11 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     subplot(2,1,1); hold on;
     plot(P_deseada, '--'); 
     plot(P_real, '-'); 
-    title('XYZ Deseado vs Real'); legend('Xref','Yref','Zref','X','Y','Z'); grid on;
+    ylabel('Posición [m]');xlabel('Pasos');title('XYZ Deseado vs Real'); legend('Xref','Yref','Zref','X','Y','Z'); grid on;
     
     subplot(2,1,2); hold on;
     plot(Error_mm);
-    ylabel('Error [mm]'); title('Error de Seguimiento'); legend('Ex','Ey','Ez'); grid on;
+    ylabel('Error [mm]');xlabel('Pasos'); title('Error de Seguimiento'); legend('Ex','Ey','Ez'); grid on;
 
     % Figura 3: Motores
     figure(4); clf;
@@ -152,3 +152,4 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     ylabel('Grados'); title('Motores'); legend('q1','q2','q3','q4','q5'); grid on;
 
 end
+
