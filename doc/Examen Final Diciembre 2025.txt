@@ -1,0 +1,77 @@
+22.90 AUTOMACION INDUSTRIAL  EXAMEN FINAL  DICIEMBRE 2025  
+Examen Final Diciembre 2025  
+Introducción  
+El final de la materia Automación Industrial 22.90 consistirá en una actividad práctica, orientada a la 
+caracterización y simulación de control de un brazo robótico de seis actuadores (cinco ejes y un 
+gripper). El brazo robótico que se utilizara para esta actividad es el ‘TROSSEN – WidowX MK-II’ 
+provisto por la catedra. El software que se utilizara para la caracterización y simulación será el 
+MATLAB, con el uso de ‘Robotics ToolBox’ y ‘Machine Vision Toolbox’, diseñados por Peter Corke. La 
+actividad se podrá realizar en grupos de hasta cuatro personas. Los grupos serán definidos por los  
+mismos alumnos.   
+La actividad no se realizará en los laboratorios con el brazo físico, sino que todo el enunciado debe 
+ser completamente simulado en un entorno digital. La presentación de este trabajo, también se 
+realizará de forma virtual, utilizando Google meet.  
+Parte 1  
+  
+ 
+ 
+Utilizando las medidas aproximadas (todas en milímetros) que se muestran en la figura superior, 
+caracterizar el brazo robótico utilizando las herramientas del ‘Robotics ToolBox’. Para esto proponga 
+los parámetros DH que correspondan, y generen un modelo de l brazo en MATLAB. Se deberá 
+considerar como efector final del brazo un marcador común (sostenido por el gripper del modo que 
+sea definido por cada grupo). Este se deberá tener en cuenta para calcular el desplazamiento de la 
+herramienta del modelo. Además de realizar el modelo utilizando las medidas propuestas, se deberá 
+
+
+22.90 AUTOMACION INDUSTRIAL  EXAMEN FINAL  DICIEMBRE 2025  
+realizar un modelo de forma simbólica utilizando medidas genéricas, que permitan conocer el 
+impacto que generaría en el control el error en las medidas.   
+  
+Recomendación   
+Programar el modelo de modo que sea sencillo modificar los parámetros del mismo. Considere que 
+existen muchas variables del problema que no están definidas aun, como por ejemplo el error de las 
+medidas propuestas, el sentido de rotación de los actuadores, los ángulos de los actuadores en la 
+posición de reposo, los ángulos límites de funcionamiento, el gear ratio de cada actuador, etc.   
+Parte 2   
+En base al modelo generado en la Parte 1, realizar un programa en MATLAB que, a partir de un control 
+de trayectorias, permita dibujar sobre el plano de la mesa de trabajo una recta con dimensiones 
+definidas. Tener en cuenta:  
+• Definir los ángulos que corresponden a la posición de reposos del brazo.   
+• Definir los límites de ángulos de los actuadores que aseguren un funcionamiento seguro del 
+brazo (espacio de trabajo). El mismo debe ser presentado en una nube de puntos espaciales, 
+generado en MATLAB.  
+• Definir sentido de rotación positiva de los actuadores.  
+• Considerar que la recta estará completamente contenida en un rectángulo de 15 cm x 20 cm 
+sobre la mesa de trabajo, delante del robot. La posición del rectángulo de trabajo será 
+definida por cada equipo.  
+• Tener presente que las variables de entrada que admite el brazo son los ángulos objetivos 
+de los actuadores, y la velocidad con la que se debe llegar a los mismos (la cátedra 
+recomienda movimientos lentos, y un nivel alto de partición de la trayectoria). Para conocer 
+mejor la interface entre MATLAB y el brazo se recomienda leer el ejemplo de utilización del 
+script “Arbotix”, realizado por Peter Corke, que se enviara como adjunto a esta consigna.   
+Parte 3  
+Se diseñará un sistema de visión que permita reconocer a partir de una imagen genérica (ver imagen 
+adjunta como ejemplo), la recta a ser graficada. El sistema deberá identificar la ubicación (en 
+coordenadas del rectángulo de trabajo) de la posición de los extremos de la recta, y comunicarlos al 
+sistema de control del robot, para que el mismo dibuje la misma recta que la informada mediante la 
+imagen.   
+La imagen estará tomada desde un ángulo genérico (generando una imagen en perspectiva), 
+contendrá el rectángulo de trabajo marcado en verde y la recta a replicar marcada en rojo.   
+
+22.90 AUTOMACION INDUSTRIAL  EXAMEN FINAL  DICIEMBRE 2025  
+ 
+
+
+22.90 AUTOMACION INDUSTRIAL  EXAMEN FINAL  DICIEMBRE 2025  
+En este ejemplo más allá de la posición de los vértices en la imagen, la posición real de los mismos 
+en coordenadas (u,v), respecto del marco verde superior izquierdo es: A (110,30), B (170,75), C 
+(155,110).  
+  
+  
+Presentación del Trabajo   
+El trabajo práctico completo se presentará de manera oral el día del examen final, con el soporte de 
+una presentación en PPT. Esta presentación deberá explicar con claridad el funcionamiento del 
+programa realizado, la estrategia de resolución de problema, la modularizacion del programa, las 
+funciones diseñadas para asistir la tarea, etc. El material de la presentación junto con el programa 
+realizado en MATLAB, deberán ser enviados por mail a Rodolfo Arias (roarias@itba.edu.ar) y Federico 
+Sofio Avogadro (fsofio@itba.edu.ar) antes de comenzar la exposición.  

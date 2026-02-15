@@ -90,7 +90,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
    figure(2); clf; hold on;
 
    % A) DIBUJAR LA HOJA (Rectángulo Negro)
-    x_start = 0.06; 
+    x_start = 0.2; 
     w_hoja  = 0.15; % Ancho X
     l_hoja  = 0.20; % Largo Y
     

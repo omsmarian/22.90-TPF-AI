@@ -11,8 +11,8 @@ function [x_m, y_m] = vision_to_robot(u_mv, v_mv)
 
     %% 1. Cálculo del Eje X (Profundidad)
     % La imagen va de 0 (lejos) a 150 (cerca).
-    % El robot va de 210 (lejos) a 60 (cerca).
-    x_mm = 210 - v_mv;
+    % El robot va de 350 (lejos) a 200 (cerca).
+    x_mm = 350 - v_mv;
 
     %% 2. Cálculo del Eje Y (Lateral)
     % La imagen va de 0 (izquierda) a 200 (derecha).
