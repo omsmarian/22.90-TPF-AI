@@ -54,8 +54,7 @@ La implementación actual cubre los tres bloques pedidos:
 
 ```mermaid
 flowchart TD
-    A[Inicio main.m] --> B[Agregar carpeta functions al path]
-    B --> C[Leer imagen de entrada]
+    A[Inicio main.m] --> C[Leer imagen de entrada]
     C --> D[Ejecutar vision_model]
 
     D --> E{debug.ok == true?}
@@ -66,12 +65,11 @@ flowchart TD
     H --> I[Convertir P2 con vision_to_robot]
     I --> J[Ejecutar Robot_Sim con puntos convertidos]
     J --> K[Simulación y gráficos de desempeño]
-    K --> L[Fin]
 ```
 
 ---
 
-## 5) Módulo de visión (`vision_model`) – explicación detallada
+## 5) Módulo de visión (`vision_model`)
 
 ### 5.1 Entradas/salidas
 
@@ -148,7 +146,7 @@ flowchart TD
 
 ---
 
-## 6) Módulo de conversión (`vision_to_robot`) – explicación detallada
+## 6) Módulo de conversión (`vision_to_robot`)
 
 Este módulo transforma coordenadas del plano de trabajo (en mm) a coordenadas del robot (en metros).
 
@@ -169,7 +167,7 @@ Interpretación:
 
 ---
 
-## 7) Módulo robot (`Robot_Sim`) – explicación detallada
+## 7) Módulo robot (`Robot_Sim`)
 
 ### 7.1 Modelado cinemático
 
