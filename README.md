@@ -1,4 +1,4 @@
-# Documentación Completa del Proyecto 22.90-TPF-AI
+# Trabajo Practico Final, *22.90 Automacion Industrial*
 
 ## 1) Objetivo del proyecto
 
