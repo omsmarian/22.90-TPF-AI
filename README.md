@@ -27,20 +27,28 @@ La implementación actual cubre los tres bloques pedidos:
 - **Parte 3 (Sistema de visión):**
   - Se detecta región de trabajo (esquinas verdes), se corrige perspectiva por homografía y se extraen extremos de la recta roja en coordenadas métricas del plano.
 
----
+
 
 ## 3) Estructura del repositorio
 
-- `main.m`: flujo principal integrado visión + robot.
-- `main_test.m`: prueba directa del módulo robot sin visión real.
-- `functions/vision_model.m`: pipeline completo de visión.
-- `functions/vision_to_robot.m`: mapeo plano de trabajo → coordenadas robot.
-- `functions/Robot_Sim.m`: modelo, planificación y simulación del robot.
-- `functions/my_rgb2hsv.m`: conversión RGB→HSV propia.
-- `doc/`: consigna, anexo y esta documentación.
-- `img/`: imágenes de entrada para pruebas.
-
----
+```
+├── 📁 doc
+│   ├── 📕 Examen Final Diciembre 2025.pdf
+│   ├── 🖼️ img_blobs.png
+│   ├── 🖼️ img_final.png
+│   ├── 🖼️ img_og.png
+│   ├── 🖼️ img_warp.png
+│   ├── 📕 rtb_real_robot - anexo final.pdf
+├── 📁 functions
+│   ├── 📄 Robot_Sim.m
+│   ├── 📄 my_rgb2hsv.m
+│   ├── 📄 vision_model.m
+│   └── 📄 vision_to_robot.m
+├── 📁 img
+├── 📝 README.md
+├── 📄 main.m
+└── 📄 main_test.m
+```
 
 ## 4) Diagrama de flujo general del proyecto
 
