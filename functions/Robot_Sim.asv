@@ -9,7 +9,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     L = [L1 L2 L3 L4 L5];
     L_m  = L/1000; % Pasar a metros
     d_eq = sqrt(L(2)^2 + L(3)^2)/1000;
-
+    
     % Definición de Límites (Ojo: corregí q5 de [180 -180] a [-180 180])
     qlim = [ deg2rad([-60 60]);   % q1
              deg2rad([ -90 0]);   % q2
@@ -39,7 +39,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     y_hoja_final   = y_fin; 
 
     % Alturas
-    z_segura = 0.05; %50 mm 
+    z_segura = 0.05; 
     z_papel  = 0.00; 
 
     T_home = Robot.fkine(Qreposo);
@@ -109,7 +109,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
    figure(2); clf; hold on;
 
    % A) DIBUJAR LA HOJA (Rectángulo Negro)
-    x_start = 0.2; %200 mm en el eje x
+    x_start = 0.2; 
     w_hoja  = 0.15; % Ancho X
     l_hoja  = 0.20; % Largo Y
     
@@ -145,7 +145,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
         % obtener posición del efector final (SE3)
         T = Robot.fkine(q);             % para SerialLink devuelve objeto SE3
         p = T.t;                        % p = [x y z]
-        Ptrail(end+1,:) = p;            
+        Ptrail(end+1,:) = p;            %
         set(hTrail, 'XData', Ptrail(:,1), 'YData', Ptrail(:,2), 'ZData', Ptrail(:,3));
         drawnow;
     end

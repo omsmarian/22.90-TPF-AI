@@ -16,6 +16,11 @@ else
     fprintf('Punto Inicio (mm): X=%.2f, Y=%.2f\n', P1_mm(1), P1_mm(2));
     fprintf('Punto Fin    (mm): X=%.2f, Y=%.2f\n', P2_mm(1), P2_mm(2));
 
+    % Pausa y confirmar antes de continuar
+    prompt = 'Desea continuar con la simulación del robot? Enter para OK, CTRL+C para cancelar';
+    disp(prompt);
+    pause;  % espera hasta que el usuario presione una tecla (Enter continúa; Ctrl+C aborta)
+        
     % 2. Convertir a coordenadas del Robot
     [x1, y1] = vision_to_robot( P1_mm(1), P1_mm(2));
     [x2, y2] = vision_to_robot( P2_mm(1), P2_mm(2));
