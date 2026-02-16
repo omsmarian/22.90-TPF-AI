@@ -13,4 +13,4 @@ u_fin    = 200; v_fin    = 0;  % (0,0) es la esquina superior izquierda de la ho
 % 3. Ejecutar Simulación
 fprintf('Dibujando línea de (%.3f, %.3f) a (%.3f, %.3f)...\n', x1, y1, x2, y2);
 %Robot_Sim(x1, y1, x2, y2);
-Robot_Sim(0.25, -0.05, 0.25, 0.05);
+Robot_Sim(0.3, -0.05, 0.25, 0.075);

@@ -10,7 +10,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     L_m  = L/1000; % Pasar a metros
     d_eq = sqrt(L(2)^2 + L(3)^2)/1000;
 
-    % Definición de Límites (Ojo: corregí q5 de [180 -180] a [-180 180])
+    % Definición de Límites 
     qlim = [ deg2rad([-60 60]);   % q1
              deg2rad([ -90 0]);   % q2
              deg2rad([-90 0]);   % q3
@@ -60,7 +60,6 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
 
     P_deseada = [Traj1; Traj2(2:end,:); Traj3(2:end,:); Traj4(2:end,:); Traj5(2:end,:)];
     pasos = size(P_deseada, 1);
-
     %% 4. Bucle de Control
     q_solucion = zeros(pasos, 5); 
     q_actual = Qreposo; 
@@ -126,29 +125,26 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     
     % C) Ajustes de cámara
     % Guardamos límites actuales antes de plot del robot
-    xlims = [-0.05, 0.5]; ylims = [-0.15, 0.3]; zlims = [-0.2, 0.4];
+    xlims = [-0.05, 0.5]; ylims = [-0.15, 0.3]; zlims = [-0.1, 0.4];
     axis([xlims ylims zlims]);
     view(45,25); % ángulo de vista (azimut, elevación) 
     camproj('perspective');
     camva(10); % ángulo de visión de la cámara (valores menores = más zoom), aumentar para alejar
     % También se puede desplazar la cámara más atrás en el eje de visión:
     camdolly(-0.2, 0, 0, 'headline'); % desplaza la cámara hacia atrás
+
+    lighting gouraud      % Suaviza los polígonos
+    light('Position',[0.3 -0.1 0], 'Style','infinite'); % Luz direccional fuerte
     
+    % 2. Configurar el material para que brille como metal
+    % [Ambiente, Difuso, Especular, Brillo]
+    % Especular alto (0.9) es la clave del metal
+    material metal;
+
     % D) ROBOT Y TRAYECTORIA
-    hTrail = plot3(NaN, NaN, NaN, 'm-', 'LineWidth', 2); % línea que irá "pintando"
-    Ptrail = []; % acumula puntos [x y z]
-    
-    for k = 1:size(q_solucion,1)
-        q = q_solucion(k,:);            % fila k (1 x n)
-        Robot.plot(q, 'noshadow', 'nobase', 'notiles', 'fps', 120, ...
-                   'workspace', [-0.2,0.5,-0.4,0.4,0,0.6]);
-        % obtener posición del efector final (SE3)
-        T = Robot.fkine(q);             % para SerialLink devuelve objeto SE3
-        p = T.t;                        % p = [x y z]
-        Ptrail(end+1,:) = p;            
-        set(hTrail, 'XData', Ptrail(:,1), 'YData', Ptrail(:,2), 'ZData', Ptrail(:,3));
-        drawnow;
-    end
+    Robot.plot(q_solucion,'floorlevel',0, 'fps',120,'base','linkcolor',[0.85, 0.45, 0.05],'toolcolor',[1 0.5 0], ...
+                   'trail',{'m', 'LineWidth', 2}, 'jointdiam', 0.8, 'joints', 'jaxes', 'jointcolor',[0.60, 0.60, 0.65], 'movie','rob_sim.mp4');
+
 
     % Figura 2: Errores
     figure(3); clf;
@@ -158,10 +154,9 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     plot(P_deseada, '--', 'LineWidth', 1.5); hold on;    % 2. Graficamos Deseada (Punteada) -> MATLAB usa colores 1, 2 y 3
     set(gca, 'ColorOrderIndex', 1);     % 3. Reseteamos el índice de colores al principio
     plot(P_real, '-', 'LineWidth', 1.5);    % 4. Graficamos Real (Sólida) -> MATLAB vuelve a usar colores 1, 2 y 3
-    ylabel('Posición [m]'); 
-    xlabel('Pasos');
+    xlabel('Pasos');ylabel('Posición [m]');
     title('XYZ Deseado vs Real'); 
-    legend('X Ref','X Real','Y Ref','Y Real','Z Ref','Z Real', 'Location', 'BestOutside'); 
+    legend('X Ref','Y Ref','Z Ref','X Real','Y Real','Z Real'); 
     grid on;
 
     subplot(2,1,2); hold on;
@@ -173,6 +168,5 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     figure(4); clf;
     plot(q_solucion * (180/pi), 'LineWidth', 1.5);
     ylabel('Grados'); title('Motores'); legend('q1','q2','q3','q4','q5'); grid on;
-
 end
 
