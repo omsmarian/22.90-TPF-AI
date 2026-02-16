@@ -143,7 +143,7 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
 
     % D) ROBOT Y TRAYECTORIA
     Robot.plot(q_solucion,'floorlevel',0, 'fps',120,'base','linkcolor',[0.85, 0.45, 0.05],'toolcolor',[1 0.5 0], ...
-                   'trail',{'m', 'LineWidth', 2}, 'jointdiam', 0.8, 'joints', 'jaxes', 'jointcolor',[0.60, 0.60, 0.65], 'movie','rob_sim.mp4');
+                   'trail',{'m', 'LineWidth', 2}, 'jointdiam', 0.8, 'joints', 'jaxes', 'jointcolor',[0.60, 0.60, 0.65]);
 
 
     % Figura 2: Errores
