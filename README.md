@@ -1,5 +1,7 @@
 # Trabajo Practico Final, *22.90 Automacion Industrial*
 
+<img src="./doc/animacion_centrada.gif" alt="Animación del robot" width="700" />
+
 ## 1) Objetivo del proyecto
 
 Este proyecto implementa, en MATLAB y con toolboxes de Peter Corke, una solución integrada de:
