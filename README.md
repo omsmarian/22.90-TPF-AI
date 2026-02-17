@@ -35,12 +35,6 @@ La implementación actual cubre los tres bloques pedidos:
 
 ```
 ├── 📁 doc
-│   ├── 📕 Examen Final Diciembre 2025.pdf
-│   ├── 🖼️ img_blobs.png
-│   ├── 🖼️ img_final.png
-│   ├── 🖼️ img_og.png
-│   ├── 🖼️ img_warp.png
-│   ├── 📕 rtb_real_robot - anexo final.pdf
 ├── 📁 functions
 │   ├── 📄 Robot_Sim.m
 │   ├── 📄 my_rgb2hsv.m
