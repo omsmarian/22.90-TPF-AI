@@ -217,15 +217,16 @@ flowchart TD
   R4 --> R5[Concatenar trayectoria deseada]
   R5 --> R6[Inicializar q actual]
   R6 --> R7{Quedan pasos}
-  R7 -- Si --> R8[Calcular pose actual con fkine]
-  R8 --> R9[Calcular error cartesiano]
-  R9 --> R10[Calcular jacobiano xyz]
-  R10 --> R11[Calcular delta q con pseudoinversa]
-  R11 --> R12[Actualizar q y guardar]
-  R12 --> R7
-  R7 -- No --> R13[Recalcular trayectoria real y error]
-  R13 --> R14[Graficar simulacion errores y motores]
-  R14 --> R15[Fin]
+  R7 -- No --> R8[Recalcular trayectoria real y error]
+  R8 --> R9[Graficar simulacion errores y motores]
+  R9 --> R10[Fin]
+  R7 -- Si --> R11[Calcular pose actual con fkine]
+  R11 --> R12[Calcular error cartesiano]
+  R12 --> R13[Calcular jacobiano xyz]
+  R13 --> R14[Calcular delta q con pseudoinversa]
+  R14 --> R15[Actualizar q y guardar]
+  R15 --> R7
+  
 ```
 
 ---
