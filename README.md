@@ -140,6 +140,19 @@ flowchart TD
   V15 --> V16[Retornar P1 y P2 y debug ok]
 ```
 
+### 5.5 Resultados visuales del pipeline
+
+<table>
+  <tr>
+    <td align="center"><img src="./doc/img_og.png" alt="Imagen original" width="500" /><br/>Imagen original</td>
+    <td align="center"><img src="./doc/img_blobs.png" alt="Detección de blobs verdes" width="500" /><br/>Blobs y esquinas detectadas</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="./doc/img_warp.png" alt="Imagen corregida por homografía" width="500" /><br/>Warp (corrección de perspectiva)</td>
+    <td align="center"><img src="./doc/img_final.png" alt="Detección final de línea roja" width="500" /><br/>Detección final de la recta roja</td>
+  </tr>
+</table>
+
 ---
 
 ## 6) Módulo de conversión (`vision_to_robot`)
