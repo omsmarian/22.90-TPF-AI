@@ -1,0 +1,183 @@
+function Robot_Sim_err(x_ini, y_ini, x_fin, y_fin)
+% ROBOT_SIM_ERR Simula el robot dibujando una línea, evaluando el impacto 
+% de los errores dimensionales en el seguimiento de la trayectoria.
+% 
+%   Ejemplo de uso:
+%       Robot_Sim_err(0.25, -0.05, 0.25, 0.05);
+
+    %% 1. Definición del Ideal y Real
+    % Medidas de diseño Ideales
+    L_ideal = [130, 144, 50, 144, 144] / 1000; % Pasado a metros
+    
+    % Introducimos los errores de fabricación/medición en mm
+    errores = [10, -12, 15, 0, 5] / 1000; 
+    L_real  = L_ideal + errores;
+    
+    d_eq_ideal = sqrt(L_ideal(2)^2 + L_ideal(3)^2);
+    d_eq_real  = sqrt(L_real(2)^2 + L_real(3)^2);
+
+    % Límites de los motores
+    qlim = [ deg2rad([-60 60]);     % q1
+             deg2rad([-90 0]);      % q2
+             deg2rad([-90 0]);      % q3
+             deg2rad([-90 0]);      % q4
+             deg2rad([-180 180]) ]; % q5
+
+    % --- Crear Robot CONTROLADOR (Ideal - Lo que piensa el software) ---
+    R1_i = Link('revolute', 'alpha',     0, 'a',  0,          'd', L_ideal(1), 'offset',   0,   'modified');
+    R2_i = Link('revolute', 'alpha',  pi/2, 'a',  0,          'd', 0,          'offset',  pi/2, 'modified');
+    R3_i = Link('revolute', 'alpha',     0, 'a',  d_eq_ideal, 'd', 0,          'offset',   0,   'modified');
+    R4_i = Link('revolute', 'alpha',     0, 'a',  L_ideal(4), 'd', 0,          'offset',  pi/2, 'modified');
+    R5_i = Link('revolute', 'alpha',  pi/2, 'a',  0,          'd', 0,          'offset',   0,   'modified');
+    EE_i = transl(0, 0, L_ideal(5));
+    Robot_Control = SerialLink([R1_i R2_i R3_i R4_i R5_i], 'tool', EE_i, 'name', 'Controlador');
+
+    % --- Crear Robot FÍSICO (Real - Lo que pasa en el mundo) ---
+    R1_r = Link('revolute', 'alpha',     0, 'a',  0,         'd', L_real(1), 'offset',   0,   'modified');
+    R2_r = Link('revolute', 'alpha',  pi/2, 'a',  0,         'd', 0,         'offset',  pi/2, 'modified');
+    R3_r = Link('revolute', 'alpha',     0, 'a',  d_eq_real, 'd', 0,         'offset',   0,   'modified');
+    R4_r = Link('revolute', 'alpha',     0, 'a',  L_real(4), 'd', 0,         'offset',  pi/2, 'modified');
+    R5_r = Link('revolute', 'alpha',  pi/2, 'a',  0,         'd', 0,         'offset',   0,   'modified');
+    EE_r = transl(0, 0, L_real(5));
+    Robot_Fisico = SerialLink([R1_r R2_r R3_r R4_r R5_r], 'tool', EE_r, 'name', 'Fisico');
+
+    % Pose inicial segura
+    Qreposo = [0, -0.6, -1, -0.9, 0]; 
+
+    %% 2. Definición de la Misión
+    z_segura = 0.05; 
+    z_papel  = 0.00; 
+    
+    % Usamos el modelo ideal para todo el cálculo de trayectoria y control
+    T_home = Robot_Control.fkine(Qreposo);
+    P_home = T_home.t';
+    
+    W1_Aprox     = [x_ini, y_ini, z_segura];
+    W2_Contacto  = [x_ini, y_ini, z_papel];
+    W3_DibujoFin = [x_fin, y_fin, z_papel];
+    W4_Retiro    = [x_fin, y_fin, z_segura];
+
+    %% 3. Generación de Trayectoria Deseada
+    [Traj1, ~, ~] = mtraj(@tpoly, P_home,      W1_Aprox,     40); 
+    [Traj2, ~, ~] = mtraj(@tpoly, W1_Aprox,    W2_Contacto,  20); 
+    [Traj3, ~, ~] = mtraj(@tpoly, W2_Contacto, W3_DibujoFin, 60); 
+    [Traj4, ~, ~] = mtraj(@tpoly, W3_DibujoFin, W4_Retiro,   20); 
+    [Traj5, ~, ~] = mtraj(@tpoly, W4_Retiro,    P_home,      40); 
+    
+    P_deseada = [Traj1; Traj2(2:end,:); Traj3(2:end,:); Traj4(2:end,:); Traj5(2:end,:)];
+    pasos = size(P_deseada, 1);
+
+    %% 4. Bucle de Control (Cálculo del movimiento)
+    q_solucion = zeros(pasos, 5); 
+    q_actual = Qreposo; 
+    P_real_fisico = zeros(pasos, 3);
+    
+    fprintf('Simulando trayectoria con errores de fabricación...\n');
+    
+    for i = 1:pasos
+        P_objetivo = P_deseada(i, :); 
+        
+        % 1. El controlador estima dónde está basado en el modelo IDEAL
+        T_estimada = Robot_Control.fkine(q_actual);
+        P_estimado = T_estimada.t';
+        
+        % 2. Calcula el error que el software INTENTA corregir
+        error_control = P_objetivo - P_estimado;
+        
+        % 3. Calcula la velocidad articular necesaria (Jacobiano IDEAL)
+        J_ideal = Robot_Control.jacob0(q_actual);
+        J_xyz = J_ideal(1:3, :); 
+        dq = (pinv(J_xyz) * error_control')'; 
+        
+        % 4. Aplica el movimiento a los motores
+        q_siguiente = q_actual + dq;
+        
+        % Verificación de Límites (Saturación)
+        for j = 1:5
+            if q_siguiente(j) < qlim(j,1)
+                q_siguiente(j) = qlim(j,1);
+            elseif q_siguiente(j) > qlim(j,2)
+                q_siguiente(j) = qlim(j,2);
+            end
+        end
+        
+        q_actual = q_siguiente;
+        q_solucion(i, :) = q_actual;
+
+        % 5. LA REALIDAD: ¿Dónde quedó físicamente la herramienta? (Modelo REAL)
+        T_real = Robot_Fisico.fkine(q_actual);
+        P_real_fisico(i, :) = T_real.t';
+    end
+
+    %% 5. Recálculo del Error Verdadero
+    % Diferencia entre lo que queríamos dibujar y lo que el hardware realmente dibujó
+    Error_Verdadero_mm = (P_deseada - P_real_fisico) * 1000;
+
+    %% 6. Gráficos y Animación
+    figure(1); clf; hold on;
+    
+    % A) DIBUJAR LA HOJA (Rectángulo gris)
+    x_start = 0.2; 
+    w_hoja  = 0.15; 
+    l_hoja  = 0.20; 
+    vX = [x_start, x_start + w_hoja, x_start + w_hoja, x_start];
+    vY = [-l_hoja/2, -l_hoja/2, l_hoja/2, l_hoja/2];
+    vZ = [0, 0, 0, 0];
+    patch(vX, vY, vZ, [0.9 0.9 0.9], 'FaceAlpha', 0.8, 'EdgeColor', 'k', 'LineWidth', 1);
+    
+    % B) DIBUJAR OBJETIVO EN LA HOJA (La línea negra perfecta)
+    plot3([x_ini, x_fin], [y_ini, y_fin], [0, 0], 'k-', 'LineWidth', 2);
+    plot3(x_ini, y_ini, 0, 'go', 'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'g');
+    plot3(x_fin, y_fin, 0, 'rx', 'MarkerSize', 10, 'LineWidth', 2);
+    
+    % C) AJUSTES DE CÁMARA E ILUMINACIÓN
+    axis([-0.05, 0.5, -0.15, 0.3, -0.1, 0.4]);
+    view(45, 25); 
+    camproj('perspective');
+    camva(10); 
+    camdolly(-0.2, 0, 0, 'headline'); 
+
+    % D) ANIMACIÓN DEL ROBOT REAL
+    % Definición de la paleta estética:
+    naranja_metalico = [0.85, 0.45, 0.05];
+    gris_plomo = [0.30, 0.30, 0.35]; % Para la tool
+    plata = [0.60, 0.60, 0.65];      % Para los joints
+
+    % Dibujamos el robot físico. La estela magenta mostrará el desvío real.
+    Robot_Fisico.plot(q_solucion, 'floorlevel', 0, 'fps', 120, 'base', ...
+                   'linkcolor', naranja_metalico, 'toolcolor', gris_plomo, ...
+                   'trail', {'m', 'LineWidth', 2}, 'jointdiam', 0.8, ...
+                   'joints', 'jointcolor', plata);
+               
+    % Truco de iluminación para el efecto metálico (después del plot)
+    lighting gouraud;
+    light('Position', [0.3 -0.1 1], 'Style', 'infinite'); 
+    material metal; 
+
+    % --- Gráficos de Análisis de Error ---
+    figure(2); clf;
+    
+    subplot(2,1,1); hold on;
+    colororder([0 0 1; 1 0 0; 0 0.7 0]); 
+    plot(P_deseada, '--', 'LineWidth', 1.5); 
+    set(gca, 'ColorOrderIndex', 1);     
+    plot(P_real_fisico, '-', 'LineWidth', 1.5);    
+    xlabel('Pasos'); ylabel('Posición [m]');
+    title('XYZ Deseado vs Real (Efecto del Error Dimensional)'); 
+    legend('X Ref','Y Ref','Z Ref','X Real','Y Real','Z Real'); 
+    grid on;
+    
+    subplot(2,1,2); hold on;
+    plot(Error_Verdadero_mm, 'LineWidth', 1.2);
+    ylabel('Error [mm]'); xlabel('Pasos'); 
+    title('Error de Seguimiento Físico'); 
+    legend('Ex','Ey','Ez'); 
+    grid on;
+
+    figure(3); clf;
+    plot(q_solucion * (180/pi), 'LineWidth', 1.5);
+    ylabel('Grados'); xlabel('Pasos');
+    title('Evolución de Motores (q)'); 
+    legend('q1','q2','q3','q4','q5'); 
+    grid on;
+end
