@@ -104,8 +104,13 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     end
     Error_mm = (P_deseada - P_real) * 1000;
 
-    %% 6. Gráficos
-   figure(2); clf; hold on;
+    %% 6. Gráficos (una sola ventana del robot)
+    figRobot = figure(2); clf(figRobot);
+    t = tiledlayout(figRobot, 3, 2, 'Padding', 'compact', 'TileSpacing', 'compact');
+
+    axRobot = nexttile(t, [3 1]);
+    hold(axRobot, 'on');
+    view(axRobot, 45, 25);
 
    % A) DIBUJAR LA HOJA (Rectángulo Negro)
     x_start = 0.2; %200 mm en el eje x
@@ -116,25 +121,24 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     vY = [-l_hoja/2, -l_hoja/2, l_hoja/2, l_hoja/2];
     vZ = [0, 0, 0, 0];
     
-    patch(vX, vY, vZ, [0.8 0.8 0.8], 'FaceAlpha', 0.3, 'EdgeColor', 'k', 'LineWidth', 2);
+    patch(axRobot, vX, vY, vZ, [0.8 0.8 0.8], 'FaceAlpha', 0.3, 'EdgeColor', 'k', 'LineWidth', 2);
     
     % B) DIBUJAR OBJETIVO EN LA HOJA
-    plot3([x_hoja_inicial, x_hoja_final], [y_hoja_inicial, y_hoja_final], [0, 0], 'k-', 'LineWidth', 2);
-    plot3(x_hoja_inicial, y_hoja_inicial, 0, 'go', 'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'g');
-    plot3(x_hoja_final, y_hoja_final, 0, 'rx', 'MarkerSize', 10, 'LineWidth', 2);
+    plot3(axRobot, [x_hoja_inicial, x_hoja_final], [y_hoja_inicial, y_hoja_final], [0, 0], 'k-', 'LineWidth', 2);
+    plot3(axRobot, x_hoja_inicial, y_hoja_inicial, 0, 'go', 'MarkerSize', 8, 'LineWidth', 2, 'MarkerFaceColor', 'g');
+    plot3(axRobot, x_hoja_final, y_hoja_final, 0, 'rx', 'MarkerSize', 10, 'LineWidth', 2);
     
     % C) Ajustes de cámara
     % Guardamos límites actuales antes de plot del robot
     xlims = [-0.05, 0.5]; ylims = [-0.15, 0.3]; zlims = [-0.1, 0.4];
-    axis([xlims ylims zlims]);
-    view(45,25); % ángulo de vista (azimut, elevación) 
-    camproj('perspective');
-    camva(10); % ángulo de visión de la cámara (valores menores = más zoom), aumentar para alejar
+    axis(axRobot, [xlims ylims zlims]);
+    camproj(axRobot, 'perspective');
+    camva(axRobot, 10); % ángulo de visión de la cámara (valores menores = más zoom), aumentar para alejar
     % También se puede desplazar la cámara más atrás en el eje de visión:
-    camdolly(-0.2, 0, 0, 'headline'); % desplaza la cámara hacia atrás
+    camdolly(axRobot, -0.2, 0, 0, 'headline'); % desplaza la cámara hacia atrás
 
-    lighting gouraud      % Suaviza los polígonos
-    light('Position',[0.3 -0.1 0], 'Style','infinite'); % Luz direccional fuerte
+    lighting(axRobot, 'gouraud');      % Suaviza los polígonos
+    light(axRobot, 'Position',[0.3 -0.1 0], 'Style','infinite'); % Luz direccional fuerte
     
     % 2. Configurar el material para que brille como metal
     % [Ambiente, Difuso, Especular, Brillo]
@@ -142,31 +146,40 @@ function Robot_Sim(x_ini, y_ini, x_fin, y_fin)
     material metal;
 
     % D) ROBOT Y TRAYECTORIA
+    axes(axRobot);
     Robot.plot(q_solucion,'floorlevel',0, 'fps',120,'base','linkcolor',[0.85, 0.45, 0.05],'toolcolor',[1 0.5 0], ...
                    'trail',{'m', 'LineWidth', 2}, 'jointdiam', 0.8, 'joints', 'jaxes', 'jointcolor',[0.60, 0.60, 0.65]);
 
+    % Panel superior derecho: trayectoria XYZ
+    axXYZ = nexttile(t, 2);
+    hold(axXYZ, 'on');
 
-    % Figura 2: Errores
-    figure(3); clf;
-    subplot(2,1,1); hold on;
+    colororder(axXYZ, [0 0 1; 1 0 0; 0 0.7 0]);
+    plot(axXYZ, P_deseada, '--', 'LineWidth', 1.5);
+    set(axXYZ, 'ColorOrderIndex', 1);
+    plot(axXYZ, P_real, '-', 'LineWidth', 1.5);
+    xlabel(axXYZ, 'Pasos');
+    ylabel(axXYZ, 'Posición [m]');
+    title(axXYZ, 'XYZ Deseado vs Real');
+    legend(axXYZ, 'X Ref','Y Ref','Z Ref','X Real','Y Real','Z Real');
+    grid(axXYZ, 'on');
 
-    colororder([0 0 1; 1 0 0; 0 0.7 0]); % 1. Definimos la paleta exacta: Azul, Rojo, Verde (RGB)
-    plot(P_deseada, '--', 'LineWidth', 1.5); hold on;    % 2. Graficamos Deseada (Punteada) -> MATLAB usa colores 1, 2 y 3
-    set(gca, 'ColorOrderIndex', 1);     % 3. Reseteamos el índice de colores al principio
-    plot(P_real, '-', 'LineWidth', 1.5);    % 4. Graficamos Real (Sólida) -> MATLAB vuelve a usar colores 1, 2 y 3
-    xlabel('Pasos');ylabel('Posición [m]');
-    title('XYZ Deseado vs Real'); 
-    legend('X Ref','Y Ref','Z Ref','X Real','Y Real','Z Real'); 
-    grid on;
+    % Panel medio derecho: error
+    axErr = nexttile(t, 4);
+    plot(axErr, Error_mm, 'LineWidth', 1.2);
+    ylabel(axErr, 'Error [mm]');
+    xlabel(axErr, 'Pasos');
+    title(axErr, 'Error de Seguimiento');
+    legend(axErr, 'Ex','Ey','Ez', 'Location', 'best');
+    grid(axErr, 'on');
 
-    subplot(2,1,2); hold on;
-    plot(Error_mm);
-    set(gca, 'ColorOrderIndex', 1);
-    ylabel('Error [mm]');xlabel('Pasos'); title('Error de Seguimiento'); legend('Ex','Ey','Ez'); grid on;
-
-    % Figura 3: Motores
-    figure(4); clf;
-    plot(q_solucion * (180/pi), 'LineWidth', 1.5);
-    ylabel('Grados'); title('Motores'); legend('q1','q2','q3','q4','q5'); grid on;
+    % Panel inferior derecho: motores
+    axMot = nexttile(t, 6);
+    plot(axMot, q_solucion * (180/pi), 'LineWidth', 1.2);
+    ylabel(axMot, 'Grados');
+    xlabel(axMot, 'Pasos');
+    title(axMot, 'Motores');
+    legend(axMot, 'q1','q2','q3','q4','q5', 'Location', 'best');
+    grid(axMot, 'on');
 end
 
